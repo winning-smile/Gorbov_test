@@ -3,16 +3,18 @@ from PyQt5.QtWidgets import *
 import sys
 import numpy as np
 
+Black = "rgba(20, 20, 20, 1)"
+Red = "rgba(201, 44, 44, 1)"
+
 # TODO не забыть прикрутить datetime при сохранении результатов
+
 
 class Cell(QPushButton):
     """ Класс объекта кнопки с цифрой"""
-    def __init__(self, color, val, x, y):
+    def __init__(self, color, val):
         super().__init__()
         self.color = color
         self.vl = val
-        self.x = x
-        self.y = y
 
         self.setAutoFillBackground(True)
 
@@ -22,7 +24,7 @@ class Cell(QPushButton):
         palette.setColor(QPalette.ColorRole.Window, QColor(self.color))
         self.setPalette(palette)
 
-        if color == "rgba(20, 20, 20, 1)":
+        if color == Black:
             self.setStyleSheet(
             "QPushButton {"
                 f"background-color: {color};"
@@ -38,7 +40,7 @@ class Cell(QPushButton):
                 "background-color: rgba(65, 65, 65, 1);"
                 "}"
             )
-        elif color == "rgba(201, 44, 44, 1)":
+        elif color == Red:
             self.setStyleSheet(
             "QPushButton {"
                 f"background-color: {color};"
@@ -64,20 +66,31 @@ class Window(QMainWindow):
         self.setWindowTitle("Gorbov_test")
         self.setGeometry((width-self.width_size)//2, (height-self.height_size)//2, self.width_size, self.height_size)
 
+        self.first_part = False
+        self.second_part = False
+        self.third_part = False
+
+        self.fp = 1
+
         # Сетка главного окна
         self.main_layout = QGridLayout()
 
         # Сетка поля с кнопками для исследования
+        self.cells_group = QButtonGroup()
         self.cells_layout = QGridLayout()
         self.create_cells()
+        self.cells_group.buttonClicked[int].connect(self.on_button_clicked)
 
         # Сетка с кнопками меню
         self.menu_layout = QGridLayout()
 
         # Кнопки меню
         self.start_button = QPushButton("Начать исследование")
+        self.start_button.clicked.connect(self.start_experiment)
         self.random_button = QPushButton("Перемешать ячейки")
+        self.random_button.clicked.connect(self.shuffle_cells)
         self.stop_button = QPushButton("Остановить исследование")
+        self.stop_button.clicked.connect(self.stop_experiment)
         self.open_button = QPushButton("Открыть директорию с результатами")
 
         self.name_field = QLineEdit("Введите ваше имя")
@@ -107,12 +120,12 @@ class Window(QMainWindow):
 
     def create_cells(self):
         """ Создаём поле с черно-красными карточками в случайном порядке"""
-        rng = np.random.default_rng(2)
+        rng = np.random.default_rng()
 
         black_numbers = np.arange(1, 26)
         np.random.shuffle(black_numbers)
 
-        red_numbers = np.arange(1, 25)
+        red_numbers = np.arange(26, 50)
         np.random.shuffle(red_numbers)
         k = 0
         l = 0
@@ -122,16 +135,61 @@ class Window(QMainWindow):
                 flag = rng.integers(2)
 
                 if flag % 2 == 0 and k < len(black_numbers):
-                    self.cells_layout.addWidget(Cell("rgba(20, 20, 20, 1)", black_numbers[k], 1, 1), i, j)
+                    black_button = Cell(Black, black_numbers[k])
+                    self.cells_group.addButton(black_button, black_button.vl)
+                    self.cells_layout.addWidget(black_button, i, j)
                     k += 1
 
                 elif l < len(red_numbers):
-                    self.cells_layout.addWidget(Cell("rgba(201, 44, 44, 1)", red_numbers[l], 1, 1), i, j)
+                    red_button = Cell(Red, red_numbers[l]-25)
+                    self.cells_group.addButton(red_button, red_button.vl+25)
+                    self.cells_layout.addWidget(red_button, i, j)
                     l += 1
 
                 else:
-                    self.cells_layout.addWidget(Cell("rgba(20, 20, 20, 1)", black_numbers[k], 1, 1), i, j)
+                    black_button = Cell(Black, black_numbers[k])
+                    self.cells_group.addButton(black_button, black_button.vl)
+                    self.cells_layout.addWidget(black_button, i, j)
                     k += 1
+
+    def start_experiment(self):
+        self.random_button.setEnabled(False)
+        self.open_button.setEnabled(False)
+        self.name_field.setEnabled(False)
+        self.age_field.setEnabled(False)
+
+        self.first_part = True
+        self.fp = 1
+
+    def stop_experiment(self):
+        self.random_button.setEnabled(True)
+        self.open_button.setEnabled(True)
+        self.name_field.setEnabled(True)
+        self.age_field.setEnabled(True)
+
+    def shuffle_cells(self):
+        for i in reversed(range(self.cells_layout.count())):
+            tmp = self.cells_layout.itemAt(i).widget()
+            # remove it from the layout list
+            self.cells_layout.removeWidget(tmp)
+            # remove it from the gui
+            tmp.setParent(None)
+
+        self.create_cells()
+
+    def on_button_clicked(self, id):
+        if self.first_part:
+            print(self.fp)
+            print(self.cells_group.button(id).color)
+            print(self.cells_group.button(id).vl)
+            if self.cells_group.button(id).color == Black and self.cells_group.button(id).vl == self.fp:
+                print(f"ok {self.fp}")
+                self.fp += 1
+
+            if self.fp == 26:
+                self.first_part = False
+                self.second_part = True
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
