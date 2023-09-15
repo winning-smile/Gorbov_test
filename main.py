@@ -2,6 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
 import numpy as np
+import datetime
 
 Black = "rgba(20, 20, 20, 1)"
 Red = "rgba(201, 44, 44, 1)"
@@ -70,7 +71,9 @@ class Window(QMainWindow):
         self.second_part = False
         self.third_part = False
 
+        self.color_flag = Black
         self.fp = 1
+        self.sp = 24
 
         # Сетка главного окна
         self.main_layout = QGridLayout()
@@ -86,11 +89,11 @@ class Window(QMainWindow):
 
         # Кнопки меню
         self.start_button = QPushButton("Начать исследование")
-        self.start_button.clicked.connect(self.start_experiment)
+        self.start_button.clicked.connect(lambda: self.logic_switch("start"))
         self.random_button = QPushButton("Перемешать ячейки")
         self.random_button.clicked.connect(self.shuffle_cells)
         self.stop_button = QPushButton("Остановить исследование")
-        self.stop_button.clicked.connect(self.stop_experiment)
+        self.stop_button.clicked.connect(lambda: self.logic_switch("stop"))
         self.open_button = QPushButton("Открыть директорию с результатами")
 
         self.name_field = QLineEdit("Введите ваше имя")
@@ -152,20 +155,29 @@ class Window(QMainWindow):
                     self.cells_layout.addWidget(black_button, i, j)
                     k += 1
 
-    def start_experiment(self):
-        self.random_button.setEnabled(False)
-        self.open_button.setEnabled(False)
-        self.name_field.setEnabled(False)
-        self.age_field.setEnabled(False)
+    def logic_switch(self, flag):
+        if flag == "start":
+            self.random_button.setEnabled(False)
+            self.open_button.setEnabled(False)
+            self.name_field.setEnabled(False)
+            self.age_field.setEnabled(False)
 
-        self.first_part = True
-        self.fp = 1
+            self.first_part = True
+            self.fp = 1
+            self.sp = 24
 
-    def stop_experiment(self):
-        self.random_button.setEnabled(True)
-        self.open_button.setEnabled(True)
-        self.name_field.setEnabled(True)
-        self.age_field.setEnabled(True)
+        elif flag == "stop":
+            self.random_button.setEnabled(True)
+            self.open_button.setEnabled(True)
+            self.name_field.setEnabled(True)
+            self.age_field.setEnabled(True)
+
+            self.first_part = False
+            self.second_part = False
+            self.third_part = False
+
+            self.fp = 1
+            self.sp = 24
 
     def shuffle_cells(self):
         for i in reversed(range(self.cells_layout.count())):
@@ -189,6 +201,44 @@ class Window(QMainWindow):
             if self.fp == 26:
                 self.first_part = False
                 self.second_part = True
+                self.fp = 49
+
+        if self.second_part:
+            print(self.fp)
+            print(self.cells_group.button(id).color)
+            print(self.cells_group.button(id).vl)
+
+            if self.cells_group.button(id).color == Red and self.cells_group.button(id).vl+25 == self.fp:
+                print(f"ok {self.fp}")
+                self.fp -= 1
+
+            if self.fp == 25:
+                self.second_part = False
+                self.third_part = True
+                self.fp = 1
+
+        if self.third_part:
+            if self.color_flag == Black:
+                print("in black")
+                if self.cells_group.button(id).color == Black and self.cells_group.button(id).vl == self.fp:
+                    print(f"ok {self.fp}")
+                    self.fp += 1
+                    print("fp= ", self.fp)
+                    self.color_flag = Red
+
+            elif self.color_flag == Red:
+                print("in red")
+                if self.cells_group.button(id).color == Red and self.cells_group.button(id).vl == self.sp:
+                    print(f"ok {self.sp}")
+                    self.sp -= 1
+                    print("fp= ", self.sp)
+                    self.color_flag = Black
+
+            if self.fp == 26 and self.sp == 1:
+                self.third_part = False
+                file_name = self.name_field.text() + self.age_field.text() + str(datetime.date.today()) + ".txt"
+                result_file = open(file_name, "x")
+                result_file.close()
 
 
 if __name__ == '__main__':
