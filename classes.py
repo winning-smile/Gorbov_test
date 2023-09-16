@@ -1,8 +1,5 @@
 from main_tab import *
 
-Black = "rgba(20, 20, 20, 1)"
-Red = "rgba(201, 44, 44, 1)"
-
 
 class TabWidget(QWidget):
     def __init__(self, parent):
