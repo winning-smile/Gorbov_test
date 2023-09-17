@@ -1,13 +1,19 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import *
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPropertyAnimation
 import numpy as np
 import datetime
 import button_settings
 
+# TODO comments, section for 1 and 2 stage, code refactor
+
 Black = "rgba(20, 20, 20, 1)"
+Black_initial = QColor(20, 20, 20)
 Red = "rgba(201, 44, 44, 1)"
+Red_initial = QColor(201, 44, 44)
+White = "rgba(255, 255, 255, 1)"
 
 
 def show_warning_messagebox():
@@ -30,19 +36,55 @@ def show_info_messagebox():
 
 class Cell(QPushButton):
     """ Класс объекта кнопки с цифрой"""
-    def __init__(self, color, val):
+    def __init__(self, initial_color, val):
         super().__init__()
-        self.color = color
+        self.initial_color = initial_color
         self.vl = val
-
+        self.init_style_sheet = None
         self.setAutoFillBackground(True)
-
         self.setText(str(self.vl))
 
-        if color == Black:
+        if self.initial_color == Black:
+            self.color_anim = Black_initial
+            self.init_style_sheet = button_settings.black_default
             self.setStyleSheet(button_settings.black_default)
-        elif color == Red:
+
+        elif self.initial_color == Red:
+            self.color_anim = Red_initial
+            self.init_style_sheet = button_settings.red_default
             self.setStyleSheet(button_settings.red_default)
+
+        self.animation = QPropertyAnimation(self)
+        self.animation.setTargetObject(self)
+        self.animation.setPropertyName(b'color_anim')
+        self.animation.finished.connect(self.clear_style_sheet)
+
+    def clear_style_sheet(self):
+        self.setStyleSheet(self.init_style_sheet)
+
+    @pyqtProperty(QColor)
+    def color_anim(self):
+        return self._color_anim
+
+    @color_anim.setter
+    def color_anim(self, color):
+        self._color_anim = color
+        new_style = f"background-color: {color.name()};"
+        merged_style = f'{self.init_style_sheet}\n{new_style}'
+        self.setStyleSheet(merged_style)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
+    def animate_color(self, end_color, duration):
+        self.animation.setEasingCurve(QEasingCurve.InOutCubic)
+        self.animation.setDuration(duration)
+        self.animation.setStartValue(end_color)
+        if self.initial_color == Black:
+            self.animation.setEndValue(Black_initial)
+        else:
+            self.animation.setEndValue(Red_initial)
+        self.animation.start()
 
 
 class MainTab(QWidget):
@@ -201,7 +243,7 @@ class MainTab(QWidget):
         elif flag == "change_color":
             if self.buttons_color_mode == "Colorfull":
                 for button in self.cells_group.buttons():
-                    if button.color == Black:
+                    if button.initial_color == Black:
                         button.setStyleSheet(button_settings.black_white)
                     else:
                         button.setStyleSheet(button_settings.red_white)
@@ -210,7 +252,7 @@ class MainTab(QWidget):
 
             else:
                 for button in self.cells_group.buttons():
-                    if button.color == Black:
+                    if button.initial_color == Black:
                         button.setStyleSheet(button_settings.black_default)
                     else:
                         button.setStyleSheet(button_settings.red_default)
@@ -224,23 +266,33 @@ class MainTab(QWidget):
             tmp.setParent(None)
         self.create_cells()
 
+    # TODO Button 25 animation white?
     def on_button_clicked(self, button_id):
         if self.first_part:
-            if self.cells_group.button(button_id).color == Black and self.cells_group.button(button_id).vl == self.fp:
+            if self.cells_group.button(button_id).initial_color == Black and self.cells_group.button(button_id).vl == self.fp:
                 if not self.timer_flag:
                     self.timer_flag = True
                     self.show_time()
 
+                self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                 self.fp += 1
+
+            else:
+                self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
 
             if self.fp == 26:
                 self.first_part = False
                 self.second_part = True
                 self.fp = 49
 
+        # TODO Переделать на self.sp для красных
         if self.second_part:
-            if self.cells_group.button(button_id).color == Red and self.cells_group.button(button_id).vl + 25 == self.fp:
+            if self.cells_group.button(button_id).initial_color == Red and self.cells_group.button(button_id).vl + 25 == self.fp:
+                self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                 self.fp -= 1
+
+            else:
+                self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
 
             if self.fp == 25:
                 self.first_part_time = self.count/10
@@ -250,14 +302,22 @@ class MainTab(QWidget):
 
         if self.third_part:
             if self.color_flag == Black:
-                if self.cells_group.button(button_id).color == Black and self.cells_group.button(button_id).vl == self.fp:
+                if self.cells_group.button(button_id).initial_color == Black and self.cells_group.button(button_id).vl == self.fp:
+                    self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                     self.fp += 1
                     self.color_flag = Red
 
+                else:
+                    self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
+
             elif self.color_flag == Red:
-                if self.cells_group.button(button_id).color == Red and self.cells_group.button(button_id).vl == self.sp:
+                if self.cells_group.button(button_id).initial_color == Red and self.cells_group.button(button_id).vl == self.sp:
+                    self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                     self.sp -= 1
                     self.color_flag = Black
+
+                else:
+                    self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
 
             if self.fp == 26 and self.sp == 0:
                 self.second_part_time = (self.count/10) - self.first_part_time
@@ -265,9 +325,9 @@ class MainTab(QWidget):
                 self.third_part = False
                 file_name = self.name_field.text() + "_" + self.age_field.text() + "_" + str(datetime.date.today()) + ".txt"
                 result_file = open(file_name, "x")
-                result_file.write(f"1 часть = {self.first_part_time} секунд")
-                result_file.write(f"2 часть = {self.second_part_time} секунд")
-                result_file.write(f"разница = {self.second_part_time - self.first_part_time} секунд")
+                result_file.write(f"1 часть = {self.first_part_time} секунд\n")
+                result_file.write(f"2 часть = {self.second_part_time} секунд\n")
+                result_file.write(f"разница = {self.second_part_time - self.first_part_time} секунд\n")
                 result_file.close()
 
     def show_time(self):
