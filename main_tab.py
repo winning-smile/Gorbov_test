@@ -1,15 +1,31 @@
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt
-import sys
 import numpy as np
 import datetime
 import button_settings
 
 Black = "rgba(20, 20, 20, 1)"
 Red = "rgba(201, 44, 44, 1)"
+
+
+def show_warning_messagebox():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Warning)
+    msg.setText("Для запуска теста введите ваше имя и возраст")
+    msg.setWindowTitle("Ошибка")
+    msg.setStandardButtons(QMessageBox.Ok)
+    msg.exec_()
+
+
+def show_info_messagebox():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setWindowTitle("Инструкция")
+    msg.setText("Для прохождения теста необходимо:\n1. Последовательно выбрать чёрные числа в порядке возрастания\n2. Последовательно выбрать красные числа в порядке убывания\n3. Поочерёдно выбрать черные числа в порядке возрастания и красные в порядке убывания")
+    msg.setStandardButtons(QMessageBox.Ok)
+    msg.exec_()
 
 
 class Cell(QPushButton):
@@ -48,6 +64,9 @@ class MainTab(QWidget):
         self.fp = 1
         self.sp = 24
 
+        self.first_part_time = 0
+        self.second_part_time = 0
+
         # Сетка главного окна
         self.main_layout = QGridLayout()
         self.cells_layout = QGridLayout()
@@ -83,8 +102,10 @@ class MainTab(QWidget):
         self.timer_label.setFont(QFont('Times', 30))
         self.timer_label.setAlignment(Qt.AlignCenter)
 
-        self.name_field = QLineEdit("Введите ваше имя")
-        self.age_field = QLineEdit("Введите ваш возраст")
+        self.name_field = QLineEdit()
+        self.name_field.setPlaceholderText("Введите ваше имя")
+        self.age_field = QLineEdit()
+        self.age_field.setPlaceholderText("Введите ваш возраст")
 
         self.group_menu_buttons()
 
@@ -147,15 +168,20 @@ class MainTab(QWidget):
 
     def logic_switch(self, flag):
         if flag == "start":
-            self.random_button.setEnabled(False)
-            self.open_button.setEnabled(False)
-            self.name_field.setEnabled(False)
-            self.age_field.setEnabled(False)
-            self.change_color_button.setEnabled(False)
-            self.start_button.setEnabled(False)
-            self.first_part = True
-            self.fp = 1
-            self.sp = 24
+            if not self.name_field.text() and not self.age_field.text():
+                show_warning_messagebox()
+            else:
+                self.count = 0
+                self.random_button.setEnabled(False)
+                self.open_button.setEnabled(False)
+                self.name_field.setEnabled(False)
+                self.age_field.setEnabled(False)
+                self.change_color_button.setEnabled(False)
+                self.start_button.setEnabled(False)
+                self.first_part = True
+                self.fp = 1
+                self.sp = 24
+                show_info_messagebox()
 
         elif flag == "stop":
             self.start_button.setEnabled(True)
@@ -194,22 +220,17 @@ class MainTab(QWidget):
     def shuffle_cells(self):
         for i in reversed(range(self.cells_layout.count())):
             tmp = self.cells_layout.itemAt(i).widget()
-            # remove it from the layout list
             self.cells_layout.removeWidget(tmp)
-            # remove it from the gui
             tmp.setParent(None)
         self.create_cells()
 
     def on_button_clicked(self, button_id):
         if self.first_part:
-            print(self.fp)
-            print(self.cells_group.button(button_id).color)
-            print(self.cells_group.button(button_id).vl)
             if self.cells_group.button(button_id).color == Black and self.cells_group.button(button_id).vl == self.fp:
-                print(f"ok {self.fp}")
                 if not self.timer_flag:
                     self.timer_flag = True
                     self.show_time()
+
                 self.fp += 1
 
             if self.fp == 26:
@@ -218,44 +239,35 @@ class MainTab(QWidget):
                 self.fp = 49
 
         if self.second_part:
-            print(self.fp)
-            print(self.cells_group.button(button_id).color)
-            print(self.cells_group.button(button_id).vl)
-
-            if self.cells_group.button(button_id).color == Red and self.cells_group.button(
-                    button_id).vl + 25 == self.fp:
-                print(f"ok {self.fp}")
+            if self.cells_group.button(button_id).color == Red and self.cells_group.button(button_id).vl + 25 == self.fp:
                 self.fp -= 1
 
             if self.fp == 25:
+                self.first_part_time = self.count/10
                 self.second_part = False
                 self.third_part = True
                 self.fp = 1
 
         if self.third_part:
             if self.color_flag == Black:
-                print("in black")
-
-                if self.cells_group.button(button_id).color == Black and self.cells_group.button(
-                        button_id).vl == self.fp:
-                    print(f"ok {self.fp}")
+                if self.cells_group.button(button_id).color == Black and self.cells_group.button(button_id).vl == self.fp:
                     self.fp += 1
-                    print("fp= ", self.fp)
                     self.color_flag = Red
 
             elif self.color_flag == Red:
-                print("in red")
                 if self.cells_group.button(button_id).color == Red and self.cells_group.button(button_id).vl == self.sp:
-                    print(f"ok {self.sp}")
                     self.sp -= 1
-                    print("fp= ", self.sp)
                     self.color_flag = Black
 
             if self.fp == 26 and self.sp == 0:
+                self.second_part_time = (self.count/10) - self.first_part_time
+                self.timer_flag = False
                 self.third_part = False
-                print("test done")
-                file_name = self.name_field.text() + self.age_field.text() + str(datetime.date.today()) + ".txt"
+                file_name = self.name_field.text() + "_" + self.age_field.text() + "_" + str(datetime.date.today()) + ".txt"
                 result_file = open(file_name, "x")
+                result_file.write(f"1 часть = {self.first_part_time} секунд")
+                result_file.write(f"2 часть = {self.second_part_time} секунд")
+                result_file.write(f"разница = {self.second_part_time - self.first_part_time} секунд")
                 result_file.close()
 
     def show_time(self):
