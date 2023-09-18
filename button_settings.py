@@ -26,36 +26,6 @@ border: 3px solid rgba(201, 44, 44, 1);
 border-radius: 15px;
 """
 
-
-black_white = """QPushButton {
-              background-color: white;
-              max-height: 60px;
-              max-width: 60px;
-              margin: 0px;
-              padding: 15px;
-              color: rgba(20, 20, 20, 1);
-              font-size: 40px;
-              border-radius: 15px;
-              }
-              QPushButton::hover {
-              background-color: rgba(170, 170, 170, 1);
-              }"""
-
-
-red_white = """QPushButton {
-            background-color: white;
-            max-height: 60px;
-            max-width: 60px;
-            margin: 0px;
-            padding: 15px;
-            color: rgba(201, 44, 44, 1);
-            font-size: 40px;
-            border-radius: 15px;
-            }
-            QPushButton::hover {
-            background-color: rgba(170, 170, 170, 1);
-            }"""
-
 menu_button = """QPushButton {
             background-color: white;
             min-height: 30px;

@@ -25,11 +25,11 @@ def show_warning_messagebox():
     msg.exec_()
 
 
-def show_info_messagebox():
+def show_info_messagebox(text):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
     msg.setWindowTitle("Инструкция")
-    msg.setText("Для прохождения теста необходимо:\n1. Последовательно выбрать чёрные числа в порядке возрастания\n2. Последовательно выбрать красные числа в порядке убывания\n3. Поочерёдно выбрать черные числа в порядке возрастания и красные в порядке убывания")
+    msg.setText(text)
     msg.setStandardButtons(QMessageBox.Ok)
     msg.exec_()
 
@@ -137,9 +137,6 @@ class MainTab(QWidget):
 
         self.open_button = QPushButton("Открыть результаты")
 
-        self.change_color_button = QPushButton("Изменить цветовой стиль")
-        self.change_color_button.clicked.connect(lambda: self.logic_switch("change_color"))
-
         self.timer_label = QLabel("0:00")
         self.timer_label.setFont(QFont('Times', 30))
         self.timer_label.setAlignment(Qt.AlignCenter)
@@ -158,7 +155,6 @@ class MainTab(QWidget):
         self.menu_layout.addWidget(self.name_field, 0, 1)
         self.menu_layout.addWidget(self.age_field, 1, 1)
         self.menu_layout.addWidget(self.timer_label, 0, 2, 2, 2)
-        self.menu_layout.addWidget(self.change_color_button, 3, 1)
 
         self.main_widget = QWidget()
         self.main_layout.addWidget(self.cells_widget, 0, 0, 6, 6)
@@ -171,7 +167,6 @@ class MainTab(QWidget):
         self.menu_group.addButton(self.start_button)
         self.menu_group.addButton(self.stop_button)
         self.menu_group.addButton(self.random_button)
-        self.menu_group.addButton(self.change_color_button)
         self.menu_group.addButton(self.open_button)
 
         for button in self.menu_group.buttons():
@@ -218,12 +213,11 @@ class MainTab(QWidget):
                 self.open_button.setEnabled(False)
                 self.name_field.setEnabled(False)
                 self.age_field.setEnabled(False)
-                self.change_color_button.setEnabled(False)
                 self.start_button.setEnabled(False)
                 self.first_part = True
                 self.fp = 1
                 self.sp = 24
-                show_info_messagebox()
+                show_info_messagebox("Последовательно нажмите на чёрные числа в порядке возрастания")
 
         elif flag == "stop":
             self.start_button.setEnabled(True)
@@ -231,7 +225,6 @@ class MainTab(QWidget):
             self.open_button.setEnabled(True)
             self.name_field.setEnabled(True)
             self.age_field.setEnabled(True)
-            self.change_color_button.setEnabled(True)
             self.first_part = False
             self.second_part = False
             self.third_part = False
@@ -239,25 +232,6 @@ class MainTab(QWidget):
             self.sp = 24
             self.timer_flag = False
             self.count = 0
-
-        elif flag == "change_color":
-            if self.buttons_color_mode == "Colorfull":
-                for button in self.cells_group.buttons():
-                    if button.initial_color == Black:
-                        button.setStyleSheet(button_settings.black_white)
-                    else:
-                        button.setStyleSheet(button_settings.red_white)
-
-                self.buttons_color_mode = "White"
-
-            else:
-                for button in self.cells_group.buttons():
-                    if button.initial_color == Black:
-                        button.setStyleSheet(button_settings.black_default)
-                    else:
-                        button.setStyleSheet(button_settings.red_default)
-
-                self.buttons_color_mode = "Colorfull"
 
     def shuffle_cells(self):
         for i in reversed(range(self.cells_layout.count())):
@@ -284,10 +258,15 @@ class MainTab(QWidget):
                 self.first_part = False
                 self.second_part = True
                 self.fp = 49
+                self.timer_flag = False
+                show_info_messagebox("Последовательно нажмите на красные числа в порядке убывания")
 
         # TODO Переделать на self.sp для красных
         if self.second_part:
             if self.cells_group.button(button_id).initial_color == Red and self.cells_group.button(button_id).vl + 25 == self.fp:
+                if not self.timer_flag:
+                    self.timer_flag = True
+
                 self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                 self.fp -= 1
 
@@ -299,10 +278,14 @@ class MainTab(QWidget):
                 self.second_part = False
                 self.third_part = True
                 self.fp = 1
+                self.timer_flag = False
+                show_info_messagebox("Поочерёдно нажимайте на чёрные числа в порядке возрастания, а красные в порядке убывания")
 
         if self.third_part:
             if self.color_flag == Black:
                 if self.cells_group.button(button_id).initial_color == Black and self.cells_group.button(button_id).vl == self.fp:
+                    if not self.timer_flag:
+                        self.timer_flag = True
                     self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                     self.fp += 1
                     self.color_flag = Red
