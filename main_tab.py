@@ -6,8 +6,10 @@ from PyQt5.QtCore import Qt, QPropertyAnimation
 import numpy as np
 import datetime
 import button_settings
+from cells_generator import create_normalize_matrix
 
-# TODO comments, section for 1 and 2 stage, code refactor
+# TODO comments, split timers, new shuffle logic, split tables for 1/2 stage , code refactor
+# DONE section for 1 and 2 stage
 
 Black = "rgba(20, 20, 20, 1)"
 Black_initial = QColor(20, 20, 20)
@@ -26,6 +28,7 @@ def show_warning_messagebox():
 
 
 def show_info_messagebox(text):
+    """ Всплывающее окно с инструкциями к тесту"""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
     msg.setWindowTitle("Инструкция")
@@ -95,6 +98,7 @@ class MainTab(QWidget):
         self.second_part = False
         self.third_part = False
 
+        # Таймер
         self.timer = QTimer()
         self.timer_flag = False
         self.count = 0
@@ -108,6 +112,9 @@ class MainTab(QWidget):
 
         self.first_part_time = 0
         self.second_part_time = 0
+
+        self.bs = 0
+        self.rs = 0
 
         # Сетка главного окна
         self.main_layout = QGridLayout()
@@ -135,25 +142,15 @@ class MainTab(QWidget):
         self.stop_button = QPushButton("Остановить тест")
         self.stop_button.clicked.connect(lambda: self.logic_switch("stop"))
 
-        self.open_button = QPushButton("Открыть результаты")
-
         self.timer_label = QLabel("0:00")
         self.timer_label.setFont(QFont('Times', 30))
         self.timer_label.setAlignment(Qt.AlignCenter)
-
-        self.name_field = QLineEdit()
-        self.name_field.setPlaceholderText("Введите ваше имя")
-        self.age_field = QLineEdit()
-        self.age_field.setPlaceholderText("Введите ваш возраст")
 
         self.group_menu_buttons()
 
         self.menu_layout.addWidget(self.start_button, 0, 0)
         self.menu_layout.addWidget(self.stop_button, 1, 0)
         self.menu_layout.addWidget(self.random_button, 2, 0)
-        self.menu_layout.addWidget(self.open_button, 3, 0)
-        self.menu_layout.addWidget(self.name_field, 0, 1)
-        self.menu_layout.addWidget(self.age_field, 1, 1)
         self.menu_layout.addWidget(self.timer_label, 0, 2, 2, 2)
 
         self.main_widget = QWidget()
@@ -167,64 +164,49 @@ class MainTab(QWidget):
         self.menu_group.addButton(self.start_button)
         self.menu_group.addButton(self.stop_button)
         self.menu_group.addButton(self.random_button)
-        self.menu_group.addButton(self.open_button)
 
         for button in self.menu_group.buttons():
             button.setStyleSheet(button_settings.menu_button)
 
-        self.name_field.setStyleSheet(button_settings.menu_lines)
-        self.age_field.setStyleSheet(button_settings.menu_lines)
+    def cells_distance(self, bl, rl):
+        black_sum = 0
+        red_sum = 0
+
+        for i in range(1, len(bl)):
+            black_sum += np.sqrt((bl[i-1][1] - bl[i][1])**2 + (bl[i-1][2] - bl[i][2])**2)
+
+        for i in range(1, len(rl)):
+            red_sum += np.sqrt((rl[i-1][1] - rl[i][1])**2 + (rl[i-1][2] - rl[i][2])**2)
+
+        return black_sum, red_sum
 
     def create_cells(self):
-        """ Создаём поле с черно-красными карточками в случайном порядке"""
-        rng = np.random.default_rng()
-        black_numbers = np.arange(1, 26)
-        np.random.shuffle(black_numbers)
-        red_numbers = np.arange(26, 50)
-        np.random.shuffle(red_numbers)
-        black_iterator = 0
-        red_iterator = 0
-        for i in range(7):
-            for j in range(7):
-                flag = rng.integers(2)
-                if flag % 2 == 0 and black_iterator < len(black_numbers):
-                    black_button = Cell(Black, black_numbers[black_iterator])
-                    self.cells_group.addButton(black_button, black_button.vl)
-                    self.cells_layout.addWidget(black_button, i, j)
-                    black_iterator += 1
-                elif red_iterator < len(red_numbers):
-                    red_button = Cell(Red, red_numbers[red_iterator] - 25)
-                    self.cells_group.addButton(red_button, red_button.vl + 25)
-                    self.cells_layout.addWidget(red_button, i, j)
-                    red_iterator += 1
-                else:
-                    black_button = Cell(Black, black_numbers[black_iterator])
-                    self.cells_group.addButton(black_button, black_button.vl)
-                    self.cells_layout.addWidget(black_button, i, j)
-                    black_iterator += 1
+        """ Создаём поле с черно-красными карточками в неслучайном случайном порядке"""
+        matrix = create_normalize_matrix()
+
+        for i in range(len(matrix)):
+            if matrix[i] <= 25:
+                black_button = Cell(Black, matrix[i])
+                self.cells_group.addButton(black_button, black_button.vl)
+                self.cells_layout.addWidget(black_button, i//7, i%7)
+            else:
+                red_button = Cell(Red, matrix[i] - 25)
+                self.cells_group.addButton(red_button, red_button.vl + 25)
+                self.cells_layout.addWidget(red_button, i//7, i%7)
 
     def logic_switch(self, flag):
         if flag == "start":
-            if not self.name_field.text() and not self.age_field.text():
-                show_warning_messagebox()
-            else:
-                self.count = 0
-                self.random_button.setEnabled(False)
-                self.open_button.setEnabled(False)
-                self.name_field.setEnabled(False)
-                self.age_field.setEnabled(False)
-                self.start_button.setEnabled(False)
-                self.first_part = True
-                self.fp = 1
-                self.sp = 24
-                show_info_messagebox("Последовательно нажмите на чёрные числа в порядке возрастания")
+            self.count = 0
+            self.random_button.setEnabled(False)
+            self.start_button.setEnabled(False)
+            self.first_part = True
+            self.fp = 1
+            self.sp = 24
+            show_info_messagebox("Последовательно нажмите на чёрные числа в порядке возрастания")
 
         elif flag == "stop":
             self.start_button.setEnabled(True)
             self.random_button.setEnabled(True)
-            self.open_button.setEnabled(True)
-            self.name_field.setEnabled(True)
-            self.age_field.setEnabled(True)
             self.first_part = False
             self.second_part = False
             self.third_part = False
@@ -238,6 +220,7 @@ class MainTab(QWidget):
             tmp = self.cells_layout.itemAt(i).widget()
             self.cells_layout.removeWidget(tmp)
             tmp.setParent(None)
+            tmp.deleteLater()
         self.create_cells()
 
     # TODO Button 25 animation white?
@@ -306,19 +289,11 @@ class MainTab(QWidget):
                 self.second_part_time = (self.count/10) - self.first_part_time
                 self.timer_flag = False
                 self.third_part = False
-                file_name = self.name_field.text() + "_" + self.age_field.text() + "_" + str(datetime.date.today()) + ".txt"
-                result_file = open(file_name, "x")
-                result_file.write(f"1 часть = {self.first_part_time} секунд\n")
-                result_file.write(f"2 часть = {self.second_part_time} секунд\n")
-                result_file.write(f"разница = {self.second_part_time - self.first_part_time} секунд\n")
-                result_file.close()
+                self.logic_switch("stop")
 
     def show_time(self):
         if self.timer_flag:
-            # incrementing the counter
             self.count += 1
-            # getting text from count
-        text = str(self.count / 10)
 
-        # showing text
+        text = str(self.count / 10)
         self.timer_label.setText(text)
