@@ -34,7 +34,6 @@ def cell_matrix_distance(matrix):
     avg_red = red/24
     avg_black = black/25
 
-    print(black, avg_black, red, avg_red)
     return black, avg_black, red, avg_red
 
 
@@ -44,7 +43,6 @@ def create_normalize_matrix():
     while (3 > avgb > 4 or 3 > avgr > 4) or ((75 > b or b > 80) or (75 > r or r > 80)):
         matrix = create_cell_matrix()
         b, avgb, r, avgr = cell_matrix_distance(matrix)
-        print(b, avgb, r, avgr)
 
     return matrix
 

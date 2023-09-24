@@ -3,13 +3,13 @@ from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt, QPropertyAnimation
-import numpy as np
 import datetime
 import button_settings
 from cells_generator import create_normalize_matrix
+import create_applicant_window as caw
 
-# TODO comments, split timers, new shuffle logic, split tables for 1/2 stage , code refactor
-# DONE section for 1 and 2 stage
+# TODO comments, split timers, split tables for 1/2 stage , code refactor
+# DONE section for 1 and 2 stage, new shuffle logic
 
 Black = "rgba(20, 20, 20, 1)"
 Black_initial = QColor(20, 20, 20)
@@ -98,6 +98,8 @@ class MainTab(QWidget):
         self.second_part = False
         self.third_part = False
 
+        self.create_window = None
+
         # Таймер
         self.timer = QTimer()
         self.timer_flag = False
@@ -142,6 +144,14 @@ class MainTab(QWidget):
         self.stop_button = QPushButton("Остановить тест")
         self.stop_button.clicked.connect(lambda: self.logic_switch("stop"))
 
+        self.chose_applicant_label = QComboBox()
+
+        self.create_applicant_button = QPushButton("Новый испытуемый")
+        self.create_applicant_button.clicked.connect(lambda: self.create_applicant())
+
+        self.update_apllicant_base = QPushButton("Обновить базу")
+        self.update_apllicant_base.clicked.connect(lambda: self.update_apllicant_base())
+
         self.timer_label = QLabel("0:00")
         self.timer_label.setFont(QFont('Times', 30))
         self.timer_label.setAlignment(Qt.AlignCenter)
@@ -151,7 +161,9 @@ class MainTab(QWidget):
         self.menu_layout.addWidget(self.start_button, 0, 0)
         self.menu_layout.addWidget(self.stop_button, 1, 0)
         self.menu_layout.addWidget(self.random_button, 2, 0)
-        self.menu_layout.addWidget(self.timer_label, 0, 2, 2, 2)
+        self.menu_layout.addWidget(self.timer_label, 1, 1, 2, 2)
+        self.menu_layout.addWidget(self.chose_applicant_label, 0, 1)
+        self.menu_layout.addWidget(self.create_applicant_button, 0, 2)
 
         self.main_widget = QWidget()
         self.main_layout.addWidget(self.cells_widget, 0, 0, 6, 6)
@@ -164,21 +176,10 @@ class MainTab(QWidget):
         self.menu_group.addButton(self.start_button)
         self.menu_group.addButton(self.stop_button)
         self.menu_group.addButton(self.random_button)
+        self.menu_group.addButton(self.create_applicant_button)
 
         for button in self.menu_group.buttons():
             button.setStyleSheet(button_settings.menu_button)
-
-    def cells_distance(self, bl, rl):
-        black_sum = 0
-        red_sum = 0
-
-        for i in range(1, len(bl)):
-            black_sum += np.sqrt((bl[i-1][1] - bl[i][1])**2 + (bl[i-1][2] - bl[i][2])**2)
-
-        for i in range(1, len(rl)):
-            red_sum += np.sqrt((rl[i-1][1] - rl[i][1])**2 + (rl[i-1][2] - rl[i][2])**2)
-
-        return black_sum, red_sum
 
     def create_cells(self):
         """ Создаём поле с черно-красными карточками в неслучайном случайном порядке"""
@@ -188,11 +189,11 @@ class MainTab(QWidget):
             if matrix[i] <= 25:
                 black_button = Cell(Black, matrix[i])
                 self.cells_group.addButton(black_button, black_button.vl)
-                self.cells_layout.addWidget(black_button, i//7, i%7)
+                self.cells_layout.addWidget(black_button, i//7, i % 7)
             else:
                 red_button = Cell(Red, matrix[i] - 25)
                 self.cells_group.addButton(red_button, red_button.vl + 25)
-                self.cells_layout.addWidget(red_button, i//7, i%7)
+                self.cells_layout.addWidget(red_button, i//7, i % 7)
 
     def logic_switch(self, flag):
         if flag == "start":
@@ -214,6 +215,14 @@ class MainTab(QWidget):
             self.sp = 24
             self.timer_flag = False
             self.count = 0
+
+    def create_applicant(self):
+        if self.create_window is None:
+            self.create_window = caw.AnotherWindow()
+        self.create_window.exec()
+
+    def update_apllicant_base(self):
+        pass
 
     def shuffle_cells(self):
         for i in reversed(range(self.cells_layout.count())):
