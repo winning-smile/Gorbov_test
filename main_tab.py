@@ -2,102 +2,34 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import *
-from PyQt5.QtCore import Qt, QPropertyAnimation
-import datetime
+from PyQt5.QtCore import Qt
 import button_settings
 from cells_generator import create_normalize_matrix
 import create_applicant_window as caw
+import utility
+import os
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # TODO comments, split timers, split tables for 1/2 stage , code refactor
 # DONE section for 1 and 2 stage, new shuffle logic
-
-Black = "rgba(20, 20, 20, 1)"
-Black_initial = QColor(20, 20, 20)
-Red = "rgba(201, 44, 44, 1)"
-Red_initial = QColor(201, 44, 44)
-White = "rgba(255, 255, 255, 1)"
-
-
-def show_warning_messagebox():
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Warning)
-    msg.setText("Для запуска теста введите ваше имя и возраст")
-    msg.setWindowTitle("Ошибка")
-    msg.setStandardButtons(QMessageBox.Ok)
-    msg.exec_()
-
-
-def show_info_messagebox(text):
-    """ Всплывающее окно с инструкциями к тесту"""
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Information)
-    msg.setWindowTitle("Инструкция")
-    msg.setText(text)
-    msg.setStandardButtons(QMessageBox.Ok)
-    msg.exec_()
-
-
-class Cell(QPushButton):
-    """ Класс объекта кнопки с цифрой"""
-    def __init__(self, initial_color, val):
-        super().__init__()
-        self.initial_color = initial_color
-        self.vl = val
-        self.init_style_sheet = None
-        self.setAutoFillBackground(True)
-        self.setText(str(self.vl))
-
-        if self.initial_color == Black:
-            self.color_anim = Black_initial
-            self.init_style_sheet = button_settings.black_default
-            self.setStyleSheet(button_settings.black_default)
-
-        elif self.initial_color == Red:
-            self.color_anim = Red_initial
-            self.init_style_sheet = button_settings.red_default
-            self.setStyleSheet(button_settings.red_default)
-
-        self.animation = QPropertyAnimation(self)
-        self.animation.setTargetObject(self)
-        self.animation.setPropertyName(b'color_anim')
-        self.animation.finished.connect(self.clear_style_sheet)
-
-    def clear_style_sheet(self):
-        self.setStyleSheet(self.init_style_sheet)
-
-    @pyqtProperty(QColor)
-    def color_anim(self):
-        return self._color_anim
-
-    @color_anim.setter
-    def color_anim(self, color):
-        self._color_anim = color
-        new_style = f"background-color: {color.name()};"
-        merged_style = f'{self.init_style_sheet}\n{new_style}'
-        self.setStyleSheet(merged_style)
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
-
-    def animate_color(self, end_color, duration):
-        self.animation.setEasingCurve(QEasingCurve.InOutCubic)
-        self.animation.setDuration(duration)
-        self.animation.setStartValue(end_color)
-        if self.initial_color == Black:
-            self.animation.setEndValue(Black_initial)
-        else:
-            self.animation.setEndValue(Red_initial)
-        self.animation.start()
 
 
 class MainTab(QWidget):
     def __init__(self):
         super(QWidget, self).__init__()
 
+        # Флаги и переменные для разметки этапов тестирования
         self.first_part = False
         self.second_part = False
         self.third_part = False
+        self.color_flag = utility.Black
+        self.shuffle_once_flag = False
+        self.fp = 1
+        self.sp = 24
+        self.errors = 0
 
+        # Окно создания карточки пациента
         self.create_window = None
 
         # Таймер
@@ -106,18 +38,14 @@ class MainTab(QWidget):
         self.count = 0
         self.timer.timeout.connect(self.show_time)
         self.timer.start(100)
-
-        self.color_flag = Black
-        self.buttons_color_mode = "Colorfull"
-        self.fp = 1
-        self.sp = 24
-
         self.first_part_time = 0
         self.second_part_time = 0
 
-        self.bs = 0
-        self.rs = 0
+        # Разметка окна
+        self.setup_ui()
+        self.update_apllicant_base()
 
+    def setup_ui(self):
         # Сетка главного окна
         self.main_layout = QGridLayout()
         self.cells_layout = QGridLayout()
@@ -145,16 +73,17 @@ class MainTab(QWidget):
         self.stop_button.clicked.connect(lambda: self.logic_switch("stop"))
 
         self.chose_applicant_label = QComboBox()
+        self.chose_applicant_label.setStyleSheet(button_settings.chose_line)
 
         self.create_applicant_button = QPushButton("Новый испытуемый")
         self.create_applicant_button.clicked.connect(lambda: self.create_applicant())
 
-        self.update_apllicant_base = QPushButton("Обновить базу")
-        self.update_apllicant_base.clicked.connect(lambda: self.update_apllicant_base())
+        self.update_apllicant_button = QPushButton("Обновить базу")
+        self.update_apllicant_button.clicked.connect(lambda: self.update_apllicant_base())
 
         self.timer_label = QLabel("0:00")
         self.timer_label.setFont(QFont('Times', 30))
-        self.timer_label.setAlignment(Qt.AlignCenter)
+        self.timer_label.setAlignment(Qt.AlignLeft)
 
         self.group_menu_buttons()
 
@@ -164,6 +93,7 @@ class MainTab(QWidget):
         self.menu_layout.addWidget(self.timer_label, 1, 1, 2, 2)
         self.menu_layout.addWidget(self.chose_applicant_label, 0, 1)
         self.menu_layout.addWidget(self.create_applicant_button, 0, 2)
+        self.menu_layout.addWidget(self.update_apllicant_button, 1, 2)
 
         self.main_widget = QWidget()
         self.main_layout.addWidget(self.cells_widget, 0, 0, 6, 6)
@@ -177,6 +107,7 @@ class MainTab(QWidget):
         self.menu_group.addButton(self.stop_button)
         self.menu_group.addButton(self.random_button)
         self.menu_group.addButton(self.create_applicant_button)
+        self.menu_group.addButton(self.update_apllicant_button)
 
         for button in self.menu_group.buttons():
             button.setStyleSheet(button_settings.menu_button)
@@ -187,11 +118,11 @@ class MainTab(QWidget):
 
         for i in range(len(matrix)):
             if matrix[i] <= 25:
-                black_button = Cell(Black, matrix[i])
+                black_button = utility.Cell(utility.Black, matrix[i])
                 self.cells_group.addButton(black_button, black_button.vl)
                 self.cells_layout.addWidget(black_button, i//7, i % 7)
             else:
-                red_button = Cell(Red, matrix[i] - 25)
+                red_button = utility.Cell(utility.Red, matrix[i] - 25)
                 self.cells_group.addButton(red_button, red_button.vl + 25)
                 self.cells_layout.addWidget(red_button, i//7, i % 7)
 
@@ -200,29 +131,46 @@ class MainTab(QWidget):
             self.count = 0
             self.random_button.setEnabled(False)
             self.start_button.setEnabled(False)
+            self.create_applicant_button.setEnabled(False)
+            self.update_apllicant_button.setEnabled(False)
+            self.chose_applicant_label.setEnabled(False)
             self.first_part = True
             self.fp = 1
             self.sp = 24
-            show_info_messagebox("Последовательно нажмите на чёрные числа в порядке возрастания")
+            utility.show_info_messagebox("Последовательно нажмите на чёрные числа в порядке возрастания")
 
         elif flag == "stop":
             self.start_button.setEnabled(True)
             self.random_button.setEnabled(True)
+            self.create_applicant_button.setEnabled(True)
+            self.update_apllicant_button.setEnabled(True)
+            self.chose_applicant_label.setEnabled(True)
             self.first_part = False
             self.second_part = False
             self.third_part = False
+            self.shuffle_once_flag = False
             self.fp = 1
             self.sp = 24
             self.timer_flag = False
             self.count = 0
 
+        elif flag == "reset":
+            self.errors = 0
+
     def create_applicant(self):
         if self.create_window is None:
-            self.create_window = caw.AnotherWindow()
+            self.create_window = caw.CreateApplicantWindow()
         self.create_window.exec()
 
     def update_apllicant_base(self):
-        pass
+        self.chose_applicant_label.clear()
+        applicants = []
+
+        for profile in os.listdir(ROOT_DIR+"/data"):
+            applicants.append(profile[:-5])
+
+        for profile in applicants:
+            self.chose_applicant_label.addItem(profile)
 
     def shuffle_cells(self):
         for i in reversed(range(self.cells_layout.count())):
@@ -232,10 +180,11 @@ class MainTab(QWidget):
             tmp.deleteLater()
         self.create_cells()
 
-    # TODO Button 25 animation white?
     def on_button_clicked(self, button_id):
+        self.current_aplicant = self.chose_applicant_label.currentText()
+
         if self.first_part:
-            if self.cells_group.button(button_id).initial_color == Black and self.cells_group.button(button_id).vl == self.fp:
+            if self.cells_group.button(button_id).initial_color == utility.Black and self.cells_group.button(button_id).vl == self.fp:
                 if not self.timer_flag:
                     self.timer_flag = True
                     self.show_time()
@@ -245,17 +194,17 @@ class MainTab(QWidget):
 
             else:
                 self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
+                self.errors += 1
 
             if self.fp == 26:
                 self.first_part = False
                 self.second_part = True
                 self.fp = 49
                 self.timer_flag = False
-                show_info_messagebox("Последовательно нажмите на красные числа в порядке убывания")
+                utility.show_info_messagebox("Последовательно нажмите на красные числа в порядке убывания")
 
-        # TODO Переделать на self.sp для красных
         if self.second_part:
-            if self.cells_group.button(button_id).initial_color == Red and self.cells_group.button(button_id).vl + 25 == self.fp:
+            if self.cells_group.button(button_id).initial_color == utility.Red and self.cells_group.button(button_id).vl + 25 == self.fp:
                 if not self.timer_flag:
                     self.timer_flag = True
 
@@ -264,6 +213,7 @@ class MainTab(QWidget):
 
             else:
                 self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
+                self.errors += 1
 
             if self.fp == 25:
                 self.first_part_time = self.count/10
@@ -271,34 +221,45 @@ class MainTab(QWidget):
                 self.third_part = True
                 self.fp = 1
                 self.timer_flag = False
-                show_info_messagebox("Поочерёдно нажимайте на чёрные числа в порядке возрастания, а красные в порядке убывания")
+                utility.show_info_messagebox("Поочерёдно нажимайте на чёрные числа в порядке возрастания, а красные в порядке убывания")
 
         if self.third_part:
-            if self.color_flag == Black:
-                if self.cells_group.button(button_id).initial_color == Black and self.cells_group.button(button_id).vl == self.fp:
+
+            if not self.shuffle_once_flag:
+                self.shuffle_cells()
+                self.shuffle_once_flag = True
+
+            if self.color_flag == utility.Black:
+                if self.cells_group.button(button_id).initial_color == utility.Black and self.cells_group.button(button_id).vl == self.fp:
                     if not self.timer_flag:
                         self.timer_flag = True
                     self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                     self.fp += 1
-                    self.color_flag = Red
+                    self.color_flag = utility.Red
 
                 else:
                     self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
+                    self.errors += 1
 
-            elif self.color_flag == Red:
-                if self.cells_group.button(button_id).initial_color == Red and self.cells_group.button(button_id).vl == self.sp:
+            elif self.color_flag == utility.Red:
+                if self.cells_group.button(button_id).initial_color == utility.Red and self.cells_group.button(button_id).vl == self.sp:
                     self.cells_group.button(button_id).animate_color(QColor("green"), duration=900)
                     self.sp -= 1
-                    self.color_flag = Black
+                    self.color_flag = utility.Black
 
                 else:
                     self.cells_group.button(button_id).animate_color(QColor("white"), duration=900)
+                    self.errors += 1
 
             if self.fp == 26 and self.sp == 0:
                 self.second_part_time = (self.count/10) - self.first_part_time
                 self.timer_flag = False
                 self.third_part = False
                 self.logic_switch("stop")
+
+                profile = open(ROOT_DIR + f"/data/{self.current_aplicant}.data", "a+")
+                profile.write(f"{self.second_part_time - self.first_part_time}\n {self.errors-2}")
+                self.logic_switch("reset")
 
     def show_time(self):
         if self.timer_flag:

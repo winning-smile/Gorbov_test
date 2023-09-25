@@ -1,17 +1,11 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import *
-from PyQt5.QtCore import Qt, QPropertyAnimation
-import datetime
+from datetime import datetime
 import button_settings
+import utility
 
 
-class AnotherWindow(QDialog):
-    """
-    This "window" is a QWidget. If it has no parent, it
-    will appear as a free-floating window as we want.
-    """
+class CreateApplicantWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setup_ui()
@@ -53,20 +47,29 @@ class AnotherWindow(QDialog):
 
         self.setLayout(self.layout)
 
+    def clear_inputs(self):
+        self.first_name_field.clear()
+        self.last_name_field.clear()
+        self.age_field.clear()
+
     def create_aplicant_profile(self):
         if not self.first_name_field.text() or not self.last_name_field.text() or not self.age_field.text():
-            # call exception window from utility.py
-            pass
+            utility.show_warning_messagebox("Заполните все поля")
 
-        profile_name = "{0}_{1}.data".format(self.first_name_field.text(), self.last_name_field.text())
+        else:
+            profile_name = "{0}_{1}.data".format(self.first_name_field.text(), self.last_name_field.text())
 
-        try:
-            profile = open(f"data/{profile_name}", "a+")
-        except FileNotFoundError:
-            profile = open(f"data/{profile_name}", "w+")
+            try:
+                profile = open(f"data/{profile_name}", "a+")
 
-        profile.write(self.first_name_field.text()+ '\n')
-        profile.write(self.last_name_field.text()+ '\n')
-        profile.write(self.age_field.text()+ '\n')
-        profile.write("date"+ '\n')
-        profile.close()
+            except FileNotFoundError:
+                profile = open(f"data/{profile_name}", "w+")
+
+            profile.write(self.first_name_field.text() + '\n')
+            profile.write(self.last_name_field.text() + '\n')
+            profile.write(self.age_field.text() + '\n')
+            profile.write(str(datetime.now().date()) + '\n')
+            profile.close()
+            self.clear_inputs()
+
+
