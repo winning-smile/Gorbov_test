@@ -12,6 +12,7 @@ class CreateApplicantWindow(QDialog):
 
     def setup_ui(self):
         self.setGeometry(800, 400, 300, 300)
+        self.setFixedSize(300, 300)
         self.setStyleSheet("background-color: rgb(200,200,200)")
         self.setWindowTitle("Создание карточки пациента")
 

@@ -11,6 +11,7 @@ class Window(QMainWindow):
         self.setStyleSheet("background-color: rgb(200,200,200)")
         self.setWindowTitle("Тест Горбова")
         self.setGeometry((width-self.width_size)//2, (height-self.height_size)//2, self.width_size, self.height_size)
+        self.setFixedSize(self.width_size, self.height_size+80)
 
         self.tab_widget = classes.TabWidget(self)
         self.setCentralWidget(self.tab_widget)

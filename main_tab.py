@@ -9,11 +9,6 @@ import create_applicant_window as caw
 import utility
 import os
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# TODO comments, split timers, split tables for 1/2 stage , code refactor
-# DONE section for 1 and 2 stage, new shuffle logic
-
 
 class MainTab(QWidget):
     def __init__(self):
@@ -166,7 +161,7 @@ class MainTab(QWidget):
         self.chose_applicant_label.clear()
         applicants = []
 
-        for profile in os.listdir(ROOT_DIR+"/data"):
+        for profile in os.listdir(utility.ROOT_DIR+"/data"):
             applicants.append(profile[:-5])
 
         for profile in applicants:
@@ -257,7 +252,7 @@ class MainTab(QWidget):
                 self.third_part = False
                 self.logic_switch("stop")
 
-                profile = open(ROOT_DIR + f"/data/{self.current_aplicant}.data", "a+")
+                profile = open(utility.ROOT_DIR + f"/data/{self.current_aplicant}.data", "a+")
                 profile.write(f"{self.second_part_time - self.first_part_time}\n {self.errors-2}")
                 self.logic_switch("reset")
 
