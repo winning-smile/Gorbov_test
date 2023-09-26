@@ -3,11 +3,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt
+import os
+
 import button_settings
 from cells_generator import create_normalize_matrix
 import create_applicant_window as caw
 import utility
-import os
 
 
 class MainTab(QWidget):
@@ -76,6 +77,8 @@ class MainTab(QWidget):
         self.update_apllicant_button = QPushButton("Обновить базу")
         self.update_apllicant_button.clicked.connect(lambda: self.update_apllicant_base())
 
+        # Вёрстка таймера
+
         self.timer_label = QLabel("0:00")
         self.timer_label.setFont(QFont('Times', 30))
         self.timer_label.setAlignment(Qt.AlignLeft)
@@ -122,6 +125,7 @@ class MainTab(QWidget):
                 self.cells_layout.addWidget(red_button, i//7, i % 7)
 
     def logic_switch(self, flag):
+        """Вызов различных сценариев работы приложения"""
         if flag == "start":
             self.count = 0
             self.random_button.setEnabled(False)
@@ -153,11 +157,13 @@ class MainTab(QWidget):
             self.errors = 0
 
     def create_applicant(self):
+        """Вызов окна создания карточки пациента"""
         if self.create_window is None:
             self.create_window = caw.CreateApplicantWindow()
         self.create_window.exec()
 
     def update_apllicant_base(self):
+        """Обновление поля выбора пациента"""
         self.chose_applicant_label.clear()
         applicants = []
 
@@ -168,6 +174,7 @@ class MainTab(QWidget):
             self.chose_applicant_label.addItem(profile)
 
     def shuffle_cells(self):
+        """Перемешивание элементов теста"""
         for i in reversed(range(self.cells_layout.count())):
             tmp = self.cells_layout.itemAt(i).widget()
             self.cells_layout.removeWidget(tmp)
@@ -176,6 +183,7 @@ class MainTab(QWidget):
         self.create_cells()
 
     def on_button_clicked(self, button_id):
+        """Главный алгоритм теста"""
         self.current_aplicant = self.chose_applicant_label.currentText()
 
         if self.first_part:

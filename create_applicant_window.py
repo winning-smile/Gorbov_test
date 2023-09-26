@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from datetime import datetime
+
 import button_settings
 import utility
 
@@ -54,6 +55,7 @@ class CreateApplicantWindow(QDialog):
         self.age_field.clear()
 
     def create_aplicant_profile(self):
+        """Создание .data файла с информацией о пациенте"""
         if not self.first_name_field.text() or not self.last_name_field.text() or not self.age_field.text():
             utility.show_warning_messagebox("Заполните все поля")
 
@@ -72,5 +74,3 @@ class CreateApplicantWindow(QDialog):
             profile.write(str(datetime.now().date()) + '\n')
             profile.close()
             self.clear_inputs()
-
-

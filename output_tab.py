@@ -1,13 +1,17 @@
 from PyQt5.QtWidgets import *
-import button_settings
-import matplotlib
-matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import utility
 import os
 
-class ListIterator():
+import button_settings
+import matplotlib
+import utility
+
+matplotlib.use('Qt5Agg')
+
+
+class ListIterator:
+    """Вспомогательный класс для итерирования по self.values в бесконечном цикле"""
     def __init__(self):
         self.values = ["times", "errors", "date"]
         self.current_value = "date"
@@ -17,7 +21,9 @@ class ListIterator():
         self.current_value = self.values[self.count % 3]
         self.count += 1
 
+
 class MplCanvas(FigureCanvasQTAgg):
+    """Класс для создания холстов вывода графиков"""
     def __init__(self, parent=None, width=5, height=6, dpi=50):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111, position=[0.15, 0.15, 0.75, 0.75])
@@ -27,11 +33,13 @@ class MplCanvas(FigureCanvasQTAgg):
 class OutputTab(QWidget):
     def __init__(self):
         super(QWidget, self).__init__()
+        # Переменные для построения графиков
         self.errors = []
         self.times = []
         self.dates = []
         self.logic_flags = ["date", "times", "errors"]
         self.logic_flag = "date"
+
         self.setup_ui()
         self.update_apllicant_base()
 
@@ -43,6 +51,7 @@ class OutputTab(QWidget):
         self.menu_widget = QWidget()
         self.graph_widget = QWidget()
 
+        # Вёрстка элементов управления
         self.chose_applicant_label = QComboBox()
         self.chose_applicant_label.setStyleSheet(button_settings.chose_line)
         self.show_results_button = QPushButton("Показать результаты")
@@ -52,6 +61,7 @@ class OutputTab(QWidget):
         self.update_applicants_base_button.clicked.connect(lambda: self.update_apllicant_base())
         self.update_applicants_base_button.setStyleSheet(button_settings.menu_button)
 
+        # Вёрстка графиков
         self.main_graph = MplCanvas(self, width=5, height=4, dpi=100)
         self.additional_graph = MplCanvas(self, width=5, height=4, dpi=100)
 
@@ -79,11 +89,13 @@ class OutputTab(QWidget):
             self.dates.append(str(value)[:-1])
 
     def add_mark_to_graph(self):
+        """Построение уровней оценки распределения внимания"""
         self.main_graph.axes.axhline(y=30, color="green", linestyle='--')
         self.main_graph.axes.axhline(y=60, color="yellow", linestyle='--')
         self.main_graph.axes.axhline(y=90, color="red", linestyle='--')
 
     def show_results(self):
+        """Построение графиков из данных .data файла"""
         self.dates = []
         self.times = []
         self.errors = []
@@ -96,7 +108,6 @@ class OutputTab(QWidget):
 
         try:
             profile = open(utility.ROOT_DIR+"/data/"+profile_name+".data", "r")
-
             for line in profile:
                 if count < 3:
                     count += 1
@@ -105,11 +116,9 @@ class OutputTab(QWidget):
                 else:
                     self.input_logic(list_iterator.current_value, line)
                     list_iterator.next_current_value()
-
         finally:
             profile.close()
             del list_iterator
-
 
         self.main_graph.axes.plot(self.dates, self.times, color="black")
         self.main_graph.axes.set_xlabel("Дата тестирования")
@@ -118,7 +127,6 @@ class OutputTab(QWidget):
         self.additional_graph.axes.plot(self.dates, self.errors, color="black")
         self.additional_graph.axes.set_xlabel("Дата тестирования")
         self.additional_graph.axes.set_ylabel("Кол-во ошибок")
-
 
         self.main_graph.draw()
         self.additional_graph.draw()
