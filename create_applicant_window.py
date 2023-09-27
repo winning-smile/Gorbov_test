@@ -71,6 +71,5 @@ class CreateApplicantWindow(QDialog):
             profile.write(self.first_name_field.text() + '\n')
             profile.write(self.last_name_field.text() + '\n')
             profile.write(self.age_field.text() + '\n')
-            profile.write(str(datetime.now().date()) + '\n')
             profile.close()
             self.clear_inputs()

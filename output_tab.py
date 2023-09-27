@@ -120,13 +120,19 @@ class OutputTab(QWidget):
             profile.close()
             del list_iterator
 
-        self.main_graph.axes.plot(self.dates, self.times, color="black")
-        self.main_graph.axes.set_xlabel("Дата тестирования")
-        self.main_graph.axes.set_ylabel("Время, с.")
-        self.add_mark_to_graph()
-        self.additional_graph.axes.plot(self.dates, self.errors, color="black")
-        self.additional_graph.axes.set_xlabel("Дата тестирования")
-        self.additional_graph.axes.set_ylabel("Кол-во ошибок")
+        if len(self.times) == 1:
+            self.main_graph.axes.bar(self.dates, self.times, width=0.3, linewidth=0.3, color="black")
+            self.additional_graph.axes.bar(self.dates, self.errors, color="black")
+            self.add_mark_to_graph()
+
+        else:
+            self.main_graph.axes.plot(self.dates, self.times, color="black")
+            self.main_graph.axes.set_xlabel("Дата тестирования")
+            self.main_graph.axes.set_ylabel("Время, с.")
+            self.add_mark_to_graph()
+            self.additional_graph.axes.plot(self.dates, self.errors, color="black")
+            self.additional_graph.axes.set_xlabel("Дата тестирования")
+            self.additional_graph.axes.set_ylabel("Кол-во ошибок")
 
         self.main_graph.draw()
         self.additional_graph.draw()

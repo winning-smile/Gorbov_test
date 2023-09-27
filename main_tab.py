@@ -3,6 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt
+from datetime import datetime
 import os
 
 import button_settings
@@ -40,6 +41,7 @@ class MainTab(QWidget):
         # Разметка окна
         self.setup_ui()
         self.update_apllicant_base()
+
 
     def setup_ui(self):
         # Сетка главного окна
@@ -97,6 +99,8 @@ class MainTab(QWidget):
         self.main_layout.addWidget(self.cells_widget, 0, 0, 6, 6)
         self.main_layout.addWidget(self.menu_widget, 7, 0, 7, 6)
         self.main_widget.setLayout(self.main_layout)
+
+        self.logic_switch("first_exec")
 
         self.setLayout(self.main_layout)
 
@@ -156,6 +160,10 @@ class MainTab(QWidget):
         elif flag == "reset":
             self.errors = 0
 
+        elif flag == "first_exec":
+            if not self.chose_applicant_label.currentText():
+                self.start_button.setEnabled(False)
+
     def create_applicant(self):
         """Вызов окна создания карточки пациента"""
         if self.create_window is None:
@@ -172,6 +180,9 @@ class MainTab(QWidget):
 
         for profile in applicants:
             self.chose_applicant_label.addItem(profile)
+
+        if applicants:
+            self.start_button.setEnabled(True)
 
     def shuffle_cells(self):
         """Перемешивание элементов теста"""
@@ -261,7 +272,7 @@ class MainTab(QWidget):
                 self.logic_switch("stop")
 
                 profile = open(utility.ROOT_DIR + f"/data/{self.current_aplicant}.data", "a+")
-                profile.write(f"{self.second_part_time - self.first_part_time}\n {self.errors-2}")
+                profile.write(f"{datetime.now().date()}\n{self.second_part_time - self.first_part_time}\n{self.errors-2}\n")
                 self.logic_switch("reset")
 
     def show_time(self):
