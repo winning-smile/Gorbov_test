@@ -19,7 +19,11 @@ class InfoTab(QWidget):
         """Блок с информацией о результатах тестирования"""
         self.results = QLabel()
         self.results.setFont(QFont('Arial', 15))
-        self.results.setText("Расшифровка результатов:\n<30 секунд: богоподобно\n60-30 секунд: мега-харош\n90-60 секунд: очередняра\n>90 секунд: мега бот")
+        self.results.setText("Расшифровка результатов:"
+                             "\n>90 секунд: слабое внимание\n"
+                             "90-60 секунд: средний уровень внимания\n"
+                             "60-30 секунд: хороший уровень внимания\n"
+                             "<30 секунд: великолепный уровень внимания\n")
 
         self.main_layout.addWidget(self.about)
         self.main_layout.addWidget(self.results)

@@ -38,6 +38,22 @@ def show_warning_messagebox(text):
     msg.setStandardButtons(QMessageBox.Ok)
     msg.exec_()
 
+def show_results_messagebox(time_text):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    if time_text > 120:
+        msg.setText(f"Ваш результат {time_text} секунд. У вас слабое внимание")
+    elif 120 >= time_text > 60:
+        msg.setText(f"Ваш результат {time_text} секунд. У вас средний уровень внимания")
+    elif 60 >= time_text > 30:
+        msg.setText(f"Ваш результат {time_text} секунд. У вас хороший уровень внимания")
+    elif time_text < 30:
+        msg.setText(f"Ваш результат {time_text} секунд. У вас великолепный уровень внимания")
+
+    msg.setWindowTitle("Результаты")
+    msg.setStandardButtons(QMessageBox.Ok)
+    msg.exec_()
+
 
 def show_info_messagebox(text):
     """ Всплывающее окно с инструкциями к тесту"""

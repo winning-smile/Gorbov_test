@@ -273,7 +273,10 @@ class MainTab(QWidget):
 
                 profile = open(utility.ROOT_DIR + f"/data/{self.current_aplicant}.data", "a+")
                 profile.write(f"{datetime.now().date()}\n{self.second_part_time - self.first_part_time}\n{self.errors-2}\n")
+                utility.show_results_messagebox(self.second_part_time - self.first_part_time)
                 self.logic_switch("reset")
+
+
 
     def show_time(self):
         if self.timer_flag:
